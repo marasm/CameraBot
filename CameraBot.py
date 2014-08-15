@@ -19,10 +19,6 @@ LCD = Adafruit_CharLCDPlate(busnum = 0)
 # Define a queue to communicate with worker thread
 LCD_QUEUE = Queue()
 
-# Globals
-PLAYLIST_MSG   = []
-STATION        = 1
-NUM_STATIONS   = 0
 
 # Buttons
 NONE           = 0x00
@@ -74,9 +70,8 @@ def main():
    
    # Display startup banner
    LCD_QUEUE.put('CameraBot\nver. 0.1', True)
-
-   sleep(5)
-   LCD.clear()
+   sleep(2)
+   display_main_screen()
 
    # Main loop
    while True:
@@ -107,6 +102,15 @@ def main():
       delay_milliseconds(99)
    update_lcd.join()
 
+
+def display_main_screen():
+   LCD.clear()
+   diskUsage = run_cmd("df -h / |grep -o ' [0-9]*%'")
+   shotCount = 0
+   mode = "TL-INT"
+   delay = "10s"
+   LCD_QUEUE.put("du:" + diskUsage[:4] + "  " + mode + 
+      "\n#" + str(shotCount).zfill(4) + "     " + delay, True)
 
 # ----------------------------
 # READ SWITCHES
