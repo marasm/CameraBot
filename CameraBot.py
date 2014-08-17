@@ -1,20 +1,25 @@
 #!/usr/bin/python
 
-from Adafruit_I2C          import Adafruit_I2C
-from Adafruit_MCP230xx     import Adafruit_MCP230XX
-from Adafruit_CharLCDPlate import Adafruit_CharLCDPlate
 from datetime              import datetime
 from subprocess            import *
 from time                  import sleep, strftime
 from Queue                 import Queue
 from threading             import Thread
+from MOCK_CharLCDPlate     import MOCK_CharLCDPlate
 
-import smbus
+try:
+   import smbus
+   from Adafruit_I2C          import Adafruit_I2C
+   from Adafruit_MCP230xx     import Adafruit_MCP230XX
+   from Adafruit_CharLCDPlate import Adafruit_CharLCDPlate
+except ImportError:
+   print("Import Errors must be testing")
 
 # initialize the LCD plate
 #   use busnum = 0 for raspi version 1 (256MB) 
 #   and busnum = 1 for raspi version 2 (512MB)
-LCD = Adafruit_CharLCDPlate(busnum = 0)
+#LCD = Adafruit_CharLCDPlate(busnum = 0)
+LCD = MOCK_CharLCDPlate(busnum = 0)
 
 # Define a queue to communicate with worker thread
 LCD_QUEUE = Queue()
@@ -45,6 +50,7 @@ def update_lcd(q):
       while not q.empty():
          q.task_done()
          msg = q.get()
+      LCD.clear()
       LCD.setCursor(0,0)
       LCD.message(msg)
       q.task_done()
@@ -104,8 +110,7 @@ def main():
 
 
 def display_main_screen():
-   LCD.clear()
-   diskUsage = run_cmd("df -h / |grep -o ' [0-9]*%'")
+   diskUsage = run_cmd("df -h / |grep -m1 -o ' [0-9]*% '|head -1")
    shotCount = 0
    mode = "TL-INT"
    delay = "10s"
@@ -153,7 +158,6 @@ def menu_pressed():
       '7. Back         \n                ']
 
    item = 0
-   LCD.clear()
    LCD_QUEUE.put(MENU_LIST[item], True)
 
    keep_looping = True
@@ -208,10 +212,7 @@ def menu_pressed():
          delay_milliseconds(99)
 
    # Restore display
-   LCD.clear()
-   LCD_QUEUE.put("Back to buttons", True)
-   sleep(3)
-   LCD.clear()
+   display_main_screen()
 
 
 
