@@ -262,12 +262,7 @@ class MOCK_CharLCDPlate():
 
     # Read state of single button
     def buttonPressed(self, b):
-        if self.buttonsDebounced:
-            self.buttonsDebounced = False
-            return self.decodeRegToGPIOButton(getch())
-        else:
-            self.buttonsDebounced = True
-            return self.NONE
+        return b == self.decodeRegToGPIOButton(getch())
 
 
     # Read and return bitmask of combined button state
