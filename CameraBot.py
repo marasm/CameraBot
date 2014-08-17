@@ -223,27 +223,24 @@ def menu_pressed():
 def display_ipaddr():
    show_wlan0 = "ip addr show wlan0 | cut -d/ -f1 | awk '/inet/ {printf \"w%15.15s\", $2}'"
    show_eth0  = "ip addr show eth0  | cut -d/ -f1 | awk '/inet/ {printf \"e%15.15s\", $2}'"
-   ipaddr = run_cmd(show_eth0)
-   if ipaddr == "":
-      ipaddr = run_cmd(show_wlan0)
+   eipaddr = run_cmd(show_eth0)
+   wipaddr = run_cmd(show_wlan0)
 
    i = 29
-   muting = False
    keep_looping = True
    while (keep_looping):
 
       # Every 1/2 second, update the time display
       i += 1
       #if(i % 10 == 0):
-      if(i % 5 == 0):
-         LCD_QUEUE.put(datetime.now().strftime('%b %d  %H:%M:%S\n')+ ipaddr, True)
-
       # Every 3 seconds, update ethernet or wi-fi IP address
       if(i == 60):
-         ipaddr = run_cmd(show_eth0)
+         eipaddr = run_cmd(show_eth0)
+         wipaddr = run_cmd(show_wlan0)
          i = 0
-      elif(i == 30):
-         ipaddr = run_cmd(show_wlan0)
+
+      if(i % 5 == 0):
+         LCD_QUEUE.put(eipaddr + wipaddr, True)
 
       # Every 100 milliseconds, read the switches
       press = read_buttons()
