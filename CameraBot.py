@@ -35,6 +35,7 @@ LEFT           = 0x10
 UP_AND_DOWN    = 0x0C
 LEFT_AND_RIGHT = 0x12
 
+DELAY_VALUES = [.5,1,2,3,4,5,6,7,8,9,10,15,20,30,40,50,60,90,120,150,300,600,1200,3600]
 
 
 # ----------------------------
@@ -67,17 +68,25 @@ def main():
    # Setup AdaFruit LCD Plate
    LCD.begin(16,2)
    LCD.clear()
-   LCD.backlight(LCD.VIOLET)
+   LCD.backlight(LCD.ON)
+
+   # read CFG and assign the values to global vars
+   shotCount = 0
+   mode = "TL-INT" #will need to read from config
+   delayIdx = 10 #Will need to read from config
 
    # Create the worker thread and make it a daemon
-   worker = Thread(target=update_lcd, args=(LCD_QUEUE,))
-   worker.setDaemon(True)
-   worker.start()
-   
+   lcd_worker = Thread(target=update_lcd, args=(LCD_QUEUE,))
+   lcd_worker.setDaemon(True)
+   lcd_worker.start()
    # Display startup banner
    LCD_QUEUE.put('CameraBot\nver. 0.1', True)
    sleep(2)
-   display_main_screen()
+
+   #put the camera worker thread here
+
+
+   display_main_screen(mode, shotCount, delayIdx)
 
    # Main loop
    while True:
@@ -85,37 +94,34 @@ def main():
 
       # LEFT button pressed
       if(press == LEFT):
-         LCD_QUEUE.put("Left Button ", True)
+         LCD_QUEUE.put("Timelapse Start", True)
 
       # RIGHT button pressed
       if(press == RIGHT):
-         LCD_QUEUE.put("Right Button", True)
+         LCD_QUEUE.put("Timelapse Stop", True)
 
       # UP button pressed
       if(press == UP):
-         LCD_QUEUE.put("Up Button   ", True)
+         delayIdx = increaseDelay(delayIdx)
 
       # DOWN button pressed
       if(press == DOWN):
-         LCD_QUEUE.put("Down Button ", True)
+         delayIdx = decreaseDelay(delayIdx)
 
       # SELECT button pressed
       if(press == SELECT):
          menu_pressed()
 
-      
-
+      display_main_screen(mode, shotCount, delayIdx)
       delay_milliseconds(99)
-   update_lcd.join()
+   
+   update_lcd.join()#join threads
 
 
-def display_main_screen():
+def display_main_screen(mode, shotCount, delayIdx):
    diskUsage = run_cmd("df -h / |grep -m1 -o ' [0-9]*% '|head -1")
-   shotCount = 0
-   mode = "TL-INT"
-   delay = "10s"
    LCD_QUEUE.put("du:" + diskUsage[:4] + "  " + mode + 
-      "\n#" + str(shotCount).zfill(4) + "     " + delay, True)
+      "\n#" + str(shotCount).zfill(4) + "     " + str(DELAY_VALUES[delayIdx]) + "s", True)
 
 # ----------------------------
 # READ SWITCHES
@@ -137,16 +143,11 @@ def delay_milliseconds(milliseconds):
    sleep(seconds)
 
 
-
-
-
-
 # ----------------------------
 # RADIO SETUP MENU
 # ----------------------------
 
 def menu_pressed():
-   global STATION
 
    MENU_LIST = [
       '1. Display Time \n   & IP Address ',
@@ -252,7 +253,19 @@ def display_ipaddr():
          
       delay_milliseconds(99)
 
+def increaseDelay(curDelayIdx):
+   if curDelayIdx < len(DELAY_VALUES) - 2:
+      delayIdx = curDelayIdx + 1
+      return delayIdx
+   else:
+      return curDelayIdx
 
+def decreaseDelay(curDelayIdx):
+   if curDelayIdx > 0:
+      delayIdx = curDelayIdx - 1
+      return delayIdx
+   else:
+      return curDelayIdx
 
 # ----------------------------
 
