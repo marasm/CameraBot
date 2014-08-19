@@ -110,12 +110,22 @@ def main():
 
       # SELECT button pressed
       if(press == SELECT):
-         menu_pressed()
+         display_main_menu()
+         #menu_pressed()
 
       display_main_screen(mode, shotCount, delayIdx)
       delay_milliseconds(99)
    
    update_lcd.join()#join threads
+
+def display_main_menu():
+   display_menu([{'text':'testitem', 'function':NONE}])
+
+def display_menu(menuItems):
+   curMenuIdx = 0
+
+   LCD_QUEUE.put(menuItems[curMenuIdx]['text'])
+   sleep(5)
 
 
 def display_main_screen(mode, shotCount, delayIdx):
