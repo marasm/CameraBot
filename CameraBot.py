@@ -67,10 +67,10 @@ def update_lcd(q):
    return
 
 
-def runCameraCommands(destFolder):
+def runCameraCommands(outputFolder):
    global SHOT_COUNT
    while True:
-      print('dest folder=' + destFolder + '\r')
+      print('dest folder=' + outputFolder + '\r')
       SHOT_COUNT += 1
       if (ON_MAIN_SCREEN):
          display_main_screen()
@@ -78,6 +78,9 @@ def runCameraCommands(destFolder):
       sleep(DELAY_VALUES[CONFIG.tlDelayIdx])
    
    return
+
+def generateCameraCmdFromConfig():
+   return 'some command'
 
 
 # ----------------------------
