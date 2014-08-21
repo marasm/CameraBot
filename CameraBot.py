@@ -6,6 +6,7 @@ from time                  import sleep, strftime
 from Queue                 import Queue
 from threading             import Thread
 from MOCK_CharLCDPlate     import MOCK_CharLCDPlate
+from CameraBotConfig       import CameraBotConfig 
 
 try:
    import smbus
@@ -24,6 +25,7 @@ LCD = MOCK_CharLCDPlate(busnum = 0)
 # Define a queue to communicate with worker thread
 LCD_QUEUE = Queue()
 
+CONFIG = CameraBotConfig()
 
 # Buttons
 NONE           = 0x00
@@ -36,7 +38,10 @@ UP_AND_DOWN    = 0x0C
 LEFT_AND_RIGHT = 0x12
 
 DELAY_VALUES = [.5,1,2,3,4,5,6,7,8,9,10,15,20,30,40,50,60,90,120,150,300,600,1200,3600]
-
+MODE_TYPES = ['TL','ST','TLS']
+CAMERA_TYPES = ['INT','EXT']
+RESOLUTION_LIST = ['1MP','2MP','3MP','4MP','5MP']
+IMAGE_QUALITY_VALUES = [10,20,30,40,50,60,70,80,90,100]
 
 # ----------------------------
 # WORKER THREAD
@@ -71,9 +76,11 @@ def main():
    LCD.backlight(LCD.ON)
 
    # read CFG and assign the values to global vars
-   shotCount = 0
-   mode = "TL-INT" #will need to read from config
-   delayIdx = 10 #Will need to read from config
+   CONFIG.tlDelayIdx = 10
+   CONFIG.modeIdx = 0
+   CONFIG.cameraIdx = 0
+   CONFIG.resolutionIdx = 4
+   CONFIG.imgQuality = 100
 
    # Create the worker thread and make it a daemon
    lcd_worker = Thread(target=update_lcd, args=(LCD_QUEUE,))
@@ -81,57 +88,108 @@ def main():
    lcd_worker.start()
    # Display startup banner
    LCD_QUEUE.put('CameraBot\nver. 0.1', True)
-   sleep(2)
+   sleep(1)
 
    #put the camera worker thread here
 
 
-   display_main_screen(mode, shotCount, delayIdx)
+   display_main_screen()
 
    # Main loop
    while True:
       press = read_buttons()
 
       # LEFT button pressed
-      if(press == LEFT):
-         LCD_QUEUE.put("Timelapse Start", True)
+      if(press == RIGHT):
+         LCD_QUEUE.put("Camera Start", True)
+         sleep(1)
+         display_main_screen()
 
       # RIGHT button pressed
-      if(press == RIGHT):
-         LCD_QUEUE.put("Timelapse Stop", True)
+      if(press == LEFT):
+         LCD_QUEUE.put("Camera Stop", True)
+         sleep(1)
+         display_main_screen()
 
       # UP button pressed
       if(press == UP):
-         delayIdx = increaseDelay(delayIdx)
+         CONFIG.tlDelayIdx = increaseDelay(CONFIG.tlDelayIdx)
+         display_main_screen()
 
       # DOWN button pressed
       if(press == DOWN):
-         delayIdx = decreaseDelay(delayIdx)
+         CONFIG.tlDelayIdx = decreaseDelay(CONFIG.tlDelayIdx)
+         display_main_screen()
 
       # SELECT button pressed
       if(press == SELECT):
          display_main_menu()
-         #menu_pressed()
+         display_main_screen()
 
-      display_main_screen(mode, shotCount, delayIdx)
       delay_milliseconds(99)
    
    update_lcd.join()#join threads
 
 def display_main_menu():
-   display_menu([{'text':'testitem', 'function':NONE}])
+   display_menu([
+      {'text':'TL Delay (s)', 'idxAttr':'tlDelayIdx', 'values':DELAY_VALUES},
+      {'text':'Operation Mode', 'idxAttr':'modeIdx', 'values':MODE_TYPES},
+      {'text':'Select Camera', 'idxAttr':'cameraIdx', 'values':CAMERA_TYPES},
+      {'text':'Resolution', 'idxAttr':'resolutionIdx', 'values':RESOLUTION_LIST}
+      ])
 
 def display_menu(menuItems):
    curMenuIdx = 0
+   display_menu_item(menuItems[curMenuIdx])
+   keep_looping = True
+   while keep_looping:
+      buttons = read_buttons()
+      curIdxAttrName = menuItems[curMenuIdx]['idxAttr']
 
-   LCD_QUEUE.put(menuItems[curMenuIdx]['text'])
-   sleep(5)
+      if (buttons == UP):
+         if (curMenuIdx > 0):
+            curMenuIdx -= 1
+         else:
+            curMenuIdx = len(menuItems) - 1
+         display_menu_item(menuItems[curMenuIdx])
+      
+      if (buttons == DOWN):
+         if (curMenuIdx >= len(menuItems)-1):
+            curMenuIdx = 0
+         else:
+            curMenuIdx += 1
+         display_menu_item(menuItems[curMenuIdx])
 
+      if (buttons == LEFT):
+         if (getattr(CONFIG, curIdxAttrName) > 0):
+            setattr(CONFIG, curIdxAttrName, getattr(CONFIG, curIdxAttrName) - 1)
+         else:
+            setattr(CONFIG, curIdxAttrName, len(menuItems[curMenuIdx]['values'])-1)
+         display_menu_item(menuItems[curMenuIdx])
+      
+      if (buttons == RIGHT):
+         if (getattr(CONFIG, curIdxAttrName) >= len(menuItems[curMenuIdx]['values'])-1):
+            setattr(CONFIG, curIdxAttrName, 0)
+         else:
+            setattr(CONFIG, curIdxAttrName, getattr(CONFIG, curIdxAttrName) + 1)
+         display_menu_item(menuItems[curMenuIdx])
 
-def display_main_screen(mode, shotCount, delayIdx):
+      if (buttons == SELECT):
+         keep_looping = False
+      #end of main menu loop
+   display_main_screen();
+
+def display_menu_item(menuItem):
+   LCD_QUEUE.put(menuItem['text'] + 
+      "\nCurrent: " + str(menuItem['values'][getattr(CONFIG,menuItem['idxAttr'])]))
+
+def display_main_screen():
    diskUsage = run_cmd("df -h / |grep -m1 -o ' [0-9]*% '|head -1")
-   LCD_QUEUE.put("du:" + diskUsage[:4] + "  " + mode + 
-      "\n#" + str(shotCount).zfill(4) + "     " + str(DELAY_VALUES[delayIdx]) + "s", True)
+   shotCount = 123
+   LCD_QUEUE.put("du:" + diskUsage[:4] + "  " + 
+      MODE_TYPES[CONFIG.modeIdx] + "-" + CAMERA_TYPES[CONFIG.cameraIdx] +
+      "\n#" + str(shotCount).zfill(4) + "     " + 
+      str(DELAY_VALUES[CONFIG.tlDelayIdx]) + "s", True)
 
 # ----------------------------
 # READ SWITCHES
@@ -151,80 +209,6 @@ def read_buttons():
 def delay_milliseconds(milliseconds):
    seconds = milliseconds / float(1000) # divide milliseconds by 1000 for seconds
    sleep(seconds)
-
-
-# ----------------------------
-# RADIO SETUP MENU
-# ----------------------------
-
-def menu_pressed():
-
-   MENU_LIST = [
-      '1. Display Time \n   & IP Address ',
-      '2. Output Audio \n   to HDMI      ',
-      '3. Output Audio \n   to Headphones',
-      '4. Auto Select  \n   Audio Output ',
-      '5. Reload       \n   Playlist File',
-      '6. System       \n   Shutdown!    ',
-      '7. Back         \n                ']
-
-   item = 0
-   LCD_QUEUE.put(MENU_LIST[item], True)
-
-   keep_looping = True
-   while (keep_looping):
-
-      # Wait for a key press
-      press = read_buttons()
-
-      # UP button
-      if(press == UP):
-         item -= 1
-         if(item < 0):
-            item = len(MENU_LIST) - 1
-         LCD_QUEUE.put(MENU_LIST[item], True)
-
-      # DOWN button
-      elif(press == DOWN):
-         item += 1
-         if(item >= len(MENU_LIST)):
-            item = 0
-         LCD_QUEUE.put(MENU_LIST[item], True)
-
-      # SELECT button = exit
-      elif(press == SELECT):
-         keep_looping = False
-
-         # Take action
-         if(  item == 0):
-            # 1. display time and IP address
-            display_ipaddr()
-         elif(item == 1):
-            # 2. audio output to HDMI
-            output = run_cmd("amixer -q cset numid=3 2")
-         elif(item == 2):
-            # 3. audio output to headphone jack
-            output = run_cmd("amixer -q cset numid=3 1")
-         elif(item == 3):
-            # 4. audio output auto-select
-            output = run_cmd("amixer -q cset numid=3 0")
-         elif(item == 4):
-            # 5. reload our station playlist
-            LCD_QUEUE.put("Reloading\nPlaylist File...", True)
-         elif(item == 5):
-            # 6. shutdown the system
-            LCD_QUEUE.put('Shutting down\nLinux now! ...  ', True)
-            LCD_QUEUE.join()
-            output = run_cmd("sudo shutdown now")
-            LCD.clear()
-            LCD.backlight(LCD.OFF)
-            exit(0)
-      else:
-         delay_milliseconds(99)
-
-   # Restore display
-   display_main_screen()
-
 
 
 # ----------------------------
