@@ -27,6 +27,10 @@ LCD_QUEUE = Queue()
 
 CONFIG = CameraBotConfig()
 
+SHOT_COUNT = 0
+
+ON_MAIN_SCREEN = True
+
 # Buttons
 NONE           = 0x00
 SELECT         = 0x01
@@ -63,6 +67,18 @@ def update_lcd(q):
    return
 
 
+def runCameraCommands(destFolder):
+   global SHOT_COUNT
+   while True:
+      print('dest folder=' + destFolder + '\r')
+      SHOT_COUNT += 1
+      if (ON_MAIN_SCREEN):
+         display_main_screen()
+      
+      sleep(DELAY_VALUES[CONFIG.tlDelayIdx])
+   
+   return
+
 
 # ----------------------------
 # MAIN LOOP
@@ -90,8 +106,12 @@ def main():
    LCD_QUEUE.put('CameraBot\nver. 0.1', True)
    sleep(1)
 
-   #put the camera worker thread here
+   #setup the folder to store the images date based???
 
+   #put the camera worker thread here
+   camera_worker = Thread(target=runCameraCommands, args=('someFolder',))
+   camera_worker.setDaemon(True)
+   camera_worker.start()
 
    display_main_screen()
 
@@ -129,6 +149,7 @@ def main():
       delay_milliseconds(99)
    
    update_lcd.join()#join threads
+   runCameraCommands.join()
 
 def display_main_menu():
    display_menu([
@@ -139,6 +160,8 @@ def display_main_menu():
       ])
 
 def display_menu(menuItems):
+   global ON_MAIN_SCREEN
+   ON_MAIN_SCREEN = False
    curMenuIdx = 0
    display_menu_item(menuItems[curMenuIdx])
    keep_looping = True
@@ -184,11 +207,13 @@ def display_menu_item(menuItem):
       "\nCurrent: " + str(menuItem['values'][getattr(CONFIG,menuItem['idxAttr'])]))
 
 def display_main_screen():
+   global SHOT_COUNT
+   global ON_MAIN_SCREEN
+   ON_MAIN_SCREEN = True
    diskUsage = run_cmd("df -h / |grep -m1 -o ' [0-9]*% '|head -1")
-   shotCount = 123
    LCD_QUEUE.put("du:" + diskUsage[:4] + "  " + 
       MODE_TYPES[CONFIG.modeIdx] + "-" + CAMERA_TYPES[CONFIG.cameraIdx] +
-      "\n#" + str(shotCount).zfill(4) + "     " + 
+      "\n#" + str(SHOT_COUNT).zfill(4) + "     " + 
       str(DELAY_VALUES[CONFIG.tlDelayIdx]) + "s", True)
 
 # ----------------------------
@@ -211,41 +236,6 @@ def delay_milliseconds(milliseconds):
    sleep(seconds)
 
 
-# ----------------------------
-# DISPLAY TIME AND IP ADDRESS
-# ----------------------------
-
-def display_ipaddr():
-   show_wlan0 = "ip addr show wlan0 | cut -d/ -f1 | awk '/inet/ {printf \"w%15.15s\", $2}'"
-   show_eth0  = "ip addr show eth0  | cut -d/ -f1 | awk '/inet/ {printf \"e%15.15s\", $2}'"
-   eipaddr = run_cmd(show_eth0)
-   wipaddr = run_cmd(show_wlan0)
-
-   i = 29
-   keep_looping = True
-   while (keep_looping):
-
-      # Every 1/2 second, update the time display
-      i += 1
-      #if(i % 10 == 0):
-      # Every 3 seconds, update ethernet or wi-fi IP address
-      if(i == 60):
-         eipaddr = run_cmd(show_eth0)
-         wipaddr = run_cmd(show_wlan0)
-         i = 0
-
-      if(i % 5 == 0):
-         LCD_QUEUE.put(eipaddr + wipaddr, True)
-
-      # Every 100 milliseconds, read the switches
-      press = read_buttons()
-      # Take action on switch press
-      
-      # SELECT button = exit
-      if(press == SELECT):
-         keep_looping = False
-         
-      delay_milliseconds(99)
 
 def increaseDelay(curDelayIdx):
    if curDelayIdx < len(DELAY_VALUES) - 2:
