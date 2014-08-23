@@ -111,7 +111,7 @@ def main():
    CONFIG.tlDelayIdx = 10
    CONFIG.modeIdx = 0
    CONFIG.cameraIdx = 0
-   CONFIG.resolutionIdx = 7
+   CONFIG.resolutionIdx = 2
    CONFIG.imgQuality = 100
 
    # Create the worker thread and make it a daemon
