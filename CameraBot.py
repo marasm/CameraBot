@@ -69,6 +69,7 @@ def update_lcd(q):
 
 def runCameraCommands(outputFolder):
    global SHOT_COUNT
+   global ON_MAIN_SCREEN
    while True:
       print('dest folder=' + outputFolder + '\r')
       SHOT_COUNT += 1
@@ -118,9 +119,19 @@ def main():
 
    display_main_screen()
 
+   continue_main_loop = True
+   backlight_counter = 0
+
    # Main loop
-   while True:
+   while continue_main_loop:
       press = read_buttons()
+
+      backlight_counter += 1
+      if (backlight_counter > 300):#30 seconds
+         LCD.backlight(LCD.OFF)
+      
+      if (press != NONE):
+         LCD.backlight(LCD.ON)
 
       # LEFT button pressed
       if(press == RIGHT):
