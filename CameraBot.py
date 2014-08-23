@@ -73,7 +73,8 @@ def runCameraCommands(outputFolder):
    while True:
       if (not CAMERA_STOP):
          print('cmd=' + generateCameraCmdFromConfig(outputFolder) + '\r\n')
-         run_cmd(generateCameraCmdFromConfig(outputFolder))
+         res = run_cmd(generateCameraCmdFromConfig(outputFolder))
+         print('res=' + res + '\r\n')
          SHOT_COUNT += 1
          if (ON_MAIN_SCREEN):
             display_main_screen()
