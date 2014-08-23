@@ -2,11 +2,12 @@
 
 from datetime              import datetime
 from subprocess            import *
-from time                  import sleep, strftime
+from time                  import sleep, strftime, time
 from Queue                 import Queue
 from threading             import Thread
 from MOCK_CharLCDPlate     import MOCK_CharLCDPlate
 from CameraBotConfig       import CameraBotConfig 
+import os
 
 try:
    import smbus
@@ -76,16 +77,17 @@ def runCameraCommands(outputFolder):
    while True:
       if (not CAMERA_STOP):
          print('dest folder=' + outputFolder + '\r')
+         print('cmd=' + generateCameraCmdFromConfig(outputFolder) + '\r')
          SHOT_COUNT += 1
          if (ON_MAIN_SCREEN):
             display_main_screen()
       else:
-         print('Camera stopped')   
+         print('Camera stopped\r')   
       sleep(DELAY_VALUES[CONFIG.tlDelayIdx])
    
    return
 
-def generateCameraCmdFromConfig():
+def generateCameraCmdFromConfig(outputFolder):
    return 'some command'
 
 
@@ -116,10 +118,19 @@ def main():
    sleep(1)
 
    #setup the folder to store the images date based???
+   if not os.path.exists('images'):
+    os.makedirs('images')
+   fldIndex = 1
+   outFolder = 'images/' + strftime('%Y%m%d') + '-' +str(fldIndex)
+
+   while os.path.exists(outFolder):
+      fldIndex += 1
+      outFolder = 'images/' + strftime('%Y%m%d') + '-' +str(fldIndex)
+   os.makedirs(outFolder)
 
    #put the camera worker thread here
    global CAMERA_STOP
-   camera_worker = Thread(target=runCameraCommands, args=('someFolder',))
+   camera_worker = Thread(target=runCameraCommands, args=(outFolder,))
    camera_worker.setDaemon(True)
    camera_worker.start()
 
