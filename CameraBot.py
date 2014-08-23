@@ -20,8 +20,8 @@ except ImportError:
 # initialize the LCD plate
 #   use busnum = 0 for raspi version 1 (256MB) 
 #   and busnum = 1 for raspi version 2 (512MB)
-#LCD = Adafruit_CharLCDPlate(busnum = 0)
-LCD = MOCK_CharLCDPlate(busnum = 0)
+LCD = Adafruit_CharLCDPlate(busnum = 0)
+#LCD = MOCK_CharLCDPlate(busnum = 0)
 
 # Define a queue to communicate with worker thread
 LCD_QUEUE = Queue()
@@ -44,11 +44,7 @@ LEFT           = 0x10
 UP_AND_DOWN    = 0x0C
 LEFT_AND_RIGHT = 0x12
 
-DELAY_VALUES = [.5,1,2,3,4,5,6,7,8,9,10,15,20,30,40,50,60,90,120,150,300,600,1200,3600]
-MODE_TYPES = ['TL','ST','TLS']
-CAMERA_TYPES = ['INT','EXT']
-RESOLUTION_LIST = ['1MP','2MP','3MP','4MP','5MP']
-IMAGE_QUALITY_VALUES = [10,20,30,40,50,60,70,80,90,100]
+
 
 # ----------------------------
 # WORKER THREAD
@@ -76,19 +72,27 @@ def runCameraCommands(outputFolder):
    global CAMERA_STOP
    while True:
       if (not CAMERA_STOP):
-         print('dest folder=' + outputFolder + '\r')
-         print('cmd=' + generateCameraCmdFromConfig(outputFolder) + '\r')
+         print('cmd=' + generateCameraCmdFromConfig(outputFolder) + '\r\n')
+         run_cmd(generateCameraCmdFromConfig(outputFolder))
          SHOT_COUNT += 1
          if (ON_MAIN_SCREEN):
             display_main_screen()
       else:
-         print('Camera stopped\r')   
-      sleep(DELAY_VALUES[CONFIG.tlDelayIdx])
+         print('Camera stopped\r\n')   
+      sleep(CONFIG.get_cur_delay())
    
    return
 
 def generateCameraCmdFromConfig(outputFolder):
-   return 'some command'
+   command = ''
+   if (CONFIG.get_cur_camera() == 'INT'):#internal camera
+      command += 'raspistill -o ' + outputFolder + '/IMG_' + str(SHOT_COUNT) + '.jpg'
+      command += ' -q ' + str(CONFIG.get_cur_quality())
+      command += ' -w ' + str(CONFIG.get_cur_img_width())
+      command += ' -h ' + str(CONFIG.get_cur_img_height())
+   else:
+      command += 'gphoto2'
+   return command
 
 
 # ----------------------------
@@ -106,7 +110,7 @@ def main():
    CONFIG.tlDelayIdx = 10
    CONFIG.modeIdx = 0
    CONFIG.cameraIdx = 0
-   CONFIG.resolutionIdx = 4
+   CONFIG.resolutionIdx = 7
    CONFIG.imgQuality = 100
 
    # Create the worker thread and make it a daemon
@@ -188,10 +192,10 @@ def main():
 
 def display_main_menu():
    display_menu([
-      {'text':'TL Delay (s)', 'idxAttr':'tlDelayIdx', 'values':DELAY_VALUES},
-      {'text':'Operation Mode', 'idxAttr':'modeIdx', 'values':MODE_TYPES},
-      {'text':'Select Camera', 'idxAttr':'cameraIdx', 'values':CAMERA_TYPES},
-      {'text':'Resolution', 'idxAttr':'resolutionIdx', 'values':RESOLUTION_LIST}
+      {'text':'TL Delay (s)', 'idxAttr':'tlDelayIdx', 'values':CONFIG.DELAY_VALUES},
+      {'text':'Operation Mode', 'idxAttr':'modeIdx', 'values':CONFIG.MODE_TYPES},
+      {'text':'Select Camera', 'idxAttr':'cameraIdx', 'values':CONFIG.CAMERA_TYPES},
+      {'text':'Resolution', 'idxAttr':'resolutionIdx', 'values':CONFIG.RESOLUTION_LIST}
       ])
 
 def display_menu(menuItems):
@@ -247,9 +251,9 @@ def display_main_screen():
    ON_MAIN_SCREEN = True
    diskUsage = run_cmd("df -h / |grep -m1 -o ' [0-9]*% '|head -1")
    LCD_QUEUE.put("du:" + diskUsage[:4] + "  " + 
-      MODE_TYPES[CONFIG.modeIdx] + "-" + CAMERA_TYPES[CONFIG.cameraIdx] +
+      CONFIG.get_cur_mode() + "-" + CONFIG.get_cur_camera() +
       "\n#" + str(SHOT_COUNT).zfill(4) + "     " + 
-      str(DELAY_VALUES[CONFIG.tlDelayIdx]) + "s", True)
+      str(CONFIG.get_cur_delay()) + "s", True)
 
 # ----------------------------
 # READ SWITCHES
@@ -273,7 +277,7 @@ def delay_milliseconds(milliseconds):
 
 
 def increaseDelay(curDelayIdx):
-   if curDelayIdx < len(DELAY_VALUES) - 2:
+   if curDelayIdx < len(CONFIG.DELAY_VALUES) - 2:
       delayIdx = curDelayIdx + 1
       return delayIdx
    else:
