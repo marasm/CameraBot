@@ -19,8 +19,8 @@ except ImportError:
 # initialize the LCD plate
 #   use busnum = 0 for raspi version 1 (256MB) 
 #   and busnum = 1 for raspi version 2 (512MB)
-LCD = Adafruit_CharLCDPlate(busnum = 0)
-#LCD = MOCK_CharLCDPlate(busnum = 0)
+#LCD = Adafruit_CharLCDPlate(busnum = 0)
+LCD = MOCK_CharLCDPlate(busnum = 0)
 
 # Define a queue to communicate with worker thread
 LCD_QUEUE = Queue()
@@ -30,6 +30,8 @@ CONFIG = CameraBotConfig()
 SHOT_COUNT = 0
 
 ON_MAIN_SCREEN = True
+
+CAMERA_STOP = False
 
 # Buttons
 NONE           = 0x00
@@ -70,12 +72,15 @@ def update_lcd(q):
 def runCameraCommands(outputFolder):
    global SHOT_COUNT
    global ON_MAIN_SCREEN
+   global CAMERA_STOP
    while True:
-      print('dest folder=' + outputFolder + '\r')
-      SHOT_COUNT += 1
-      if (ON_MAIN_SCREEN):
-         display_main_screen()
-      
+      if (not CAMERA_STOP):
+         print('dest folder=' + outputFolder + '\r')
+         SHOT_COUNT += 1
+         if (ON_MAIN_SCREEN):
+            display_main_screen()
+      else:
+         print('Camera stopped')   
       sleep(DELAY_VALUES[CONFIG.tlDelayIdx])
    
    return
@@ -113,6 +118,7 @@ def main():
    #setup the folder to store the images date based???
 
    #put the camera worker thread here
+   global CAMERA_STOP
    camera_worker = Thread(target=runCameraCommands, args=('someFolder',))
    camera_worker.setDaemon(True)
    camera_worker.start()
@@ -136,14 +142,16 @@ def main():
 
       # LEFT button pressed
       if(press == RIGHT):
-         LCD_QUEUE.put("Camera Start", True)
+         CAMERA_STOP = False
+         LCD_QUEUE.put("Camera Started", True)
          sleep(1)
          display_main_screen()
 
       # RIGHT button pressed
       if(press == LEFT):
-         LCD_QUEUE.put("Camera Stop", True)
-         sleep(1)
+         CAMERA_STOP = True
+         LCD_QUEUE.put("Camera Stoped", True)
+         sleep(1) 
          display_main_screen()
 
       # UP button pressed
@@ -163,8 +171,9 @@ def main():
 
       delay_milliseconds(99)
    
-   update_lcd.join()#join threads
-   runCameraCommands.join()
+   #join threads
+   lcd_worker.join()
+   camera_worker.join()
 
 def display_main_menu():
    display_menu([
