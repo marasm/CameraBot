@@ -16,8 +16,8 @@ case "$1" in
     start)
         echo "Starting CameraBot"
         cd /home/pi/Workspace/CameraBot
-        git pull
-        /home/pi/Workspace/CameraBot/CameraBot.py >> /home/pi/Workspace/CameraBot/CameraBot.log 2>&1 &
+        sudo -u pi git pull
+        sudo -u pi /home/pi/Workspace/CameraBot/CameraBot.py >> /home/pi/Workspace/CameraBot/CameraBot.log 2>&1 &
     ;;
     stop)
         echo "Stopping CameraBot"
