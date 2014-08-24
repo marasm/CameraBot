@@ -119,7 +119,7 @@ def main():
    lcd_worker.setDaemon(True)
    lcd_worker.start()
    # Display startup banner
-   LCD_QUEUE.put('CameraBot\nver. 0.1', True)
+   LCD_QUEUE.put('CameraBot\nver. 0.2', True)
    sleep(1)
 
    #setup the folder to store the images date based???
