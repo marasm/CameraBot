@@ -18,12 +18,13 @@ case "$1" in
         cd /home/pi/Workspace/CameraBot
         /home/pi/Workspace/CameraBot/fix_camera_permissions.sh
         sudo -u pi git pull
-        sudo -u pi /home/pi/Workspace/CameraBot/CameraBot.py 2>&1 &
+        sudo -u pi /home/pi/Workspace/CameraBot/CameraBot.py > /home/pi/Workspace/CameraBot/CameraBot.log 2>&1 &
     ;;
     stop)
         echo "Stopping CameraBot"
         LCD_PID=`ps auxwww | grep CameraBot.py | head -1 | awk '{print $2}'`
-        kill -9 $LCD_PID
+        #kill -9 $LCD_PID
+        killall CameraBot.py
     ;;
     *)
         echo "Usage: /etc/init.d/camerabot {start|stop}"
