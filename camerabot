@@ -1,0 +1,31 @@
+### BEGIN INIT INFO
+# Provides: CameraBot
+# Required-Start: $remote_fs $syslog
+# Required-Stop: $remote_fs $syslog
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: CameraBot
+# Description: Camera timelapse controller
+### END INIT INFO
+
+#! /bin/sh
+# /etc/init.d/camerabot
+
+export HOME
+case "$1" in
+    start)
+        echo "Starting CameraBot"
+        cd /home/pi/Workspace/CameraBot
+        /home/pi/Workspace/CameraBot/CameraBot.py 2>&1 &
+    ;;
+    stop)
+        echo "Stopping CameraBot"
+        LCD_PID=`ps auxwww | grep CameraBot.py | head -1 | awk '{print $2}'`
+        kill -9 $LCD_PID
+    ;;
+    *)
+        echo "Usage: /etc/init.d/camerabot {start|stop}"
+        exit 1
+    ;;
+esac
+exit 0
