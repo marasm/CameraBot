@@ -159,7 +159,7 @@ def main():
          LCD.backlight(LCD.ON)
          backlight_on = True
 
-      # LEFT button pressed
+      # LEFT button pressed 
       if(press == RIGHT):
          CAMERA_STOP = False
          LCD_QUEUE.put("Camera Started", True)
