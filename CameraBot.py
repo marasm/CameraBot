@@ -119,7 +119,7 @@ def main():
    lcd_worker.setDaemon(True)
    lcd_worker.start()
    # Display startup banner
-   LCD_QUEUE.put('CameraBot\nver. 0.2', True)
+   LCD_QUEUE.put('CameraBot\nver. 0.3', True)
    sleep(1)
 
    #setup the folder to store the images date based???
@@ -143,18 +143,21 @@ def main():
 
    continue_main_loop = True
    backlight_counter = 0
+   backlight_on = True
 
    # Main loop
    while continue_main_loop:
       press = read_buttons()
 
       backlight_counter += 1
-      if (backlight_counter > 300):#30 seconds
+      if (backlight_counter > 600 and backlight_on) :#60 seconds
          LCD.backlight(LCD.OFF)
+         backlight_on = False
       
-      if (press != NONE):
+      if (press != NONE and not backlight_on):
          backlight_counter = 0 
          LCD.backlight(LCD.ON)
+         backlight_on = True
 
       # LEFT button pressed
       if(press == RIGHT):
