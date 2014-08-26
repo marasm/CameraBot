@@ -20,8 +20,8 @@ except ImportError:
 # initialize the LCD plate
 #   use busnum = 0 for raspi version 1 (256MB) 
 #   and busnum = 1 for raspi version 2 (512MB)
-LCD = Adafruit_CharLCDPlate(busnum = 0)
-#LCD = MOCK_CharLCDPlate(busnum = 0)
+#LCD = Adafruit_CharLCDPlate(busnum = 0)
+LCD = MOCK_CharLCDPlate(busnum = 0)
 
 # Define a queue to communicate with worker thread
 LCD_QUEUE = Queue()
@@ -96,7 +96,14 @@ def generateCameraCmdFromConfig(outputFolder):
    else:
       command += 'gphoto2'
 
-   command += ' && cp -f ' + + outputFolder + '/IMG_' + str(SHOT_COUNT) + '.jpg images/IMG_NOW.jpg'
+   #copy or move the curent shot to the root of images for streaming modes
+   if (CONFIG.get_cur_mode != 'TL'):
+      if (CONFIG.get_cur_mode == 'ST'):#Stream only - no need to preserve shots
+         command += ' && mv -f ' 
+      else:                            #TLS - both stream and preserve a copy
+         command += ' && cp -f ' 
+      command += outputFolder + '/IMG_' + str(SHOT_COUNT) + '.jpg images/IMG_NOW.jpg'
+
    return command
 
 
@@ -200,17 +207,17 @@ def main():
 
 def display_main_menu():
    display_menu([
-      {'text':'TL Delay (s)', 'idxAttr':'tlDelayIdx', 'values':CONFIG.DELAY_VALUES},
-      {'text':'Operation Mode', 'idxAttr':'modeIdx', 'values':CONFIG.MODE_TYPES},
-      {'text':'Select Camera', 'idxAttr':'cameraIdx', 'values':CONFIG.CAMERA_TYPES},
-      {'text':'Resolution', 'idxAttr':'resolutionIdx', 'values':CONFIG.RESOLUTION_LIST}
+      {'text':'TL Delay (s)', 'idxAttr':'tlDelayIdx', 'values':CONFIG.DELAY_VALUES, 'custConfigCode': None},
+      {'text':'Operation Mode', 'idxAttr':'modeIdx', 'values':CONFIG.MODE_TYPES,'custConfigCode': applyOpModeConfig},
+      {'text':'Select Camera', 'idxAttr':'cameraIdx', 'values':CONFIG.CAMERA_TYPES,'custConfigCode': None},
+      {'text':'Resolution', 'idxAttr':'resolutionIdx', 'values':CONFIG.RESOLUTION_LIST,'custConfigCode': None}
       ])
 
 def display_menu(menuItems):
    global ON_MAIN_SCREEN
    ON_MAIN_SCREEN = False
    curMenuIdx = 0
-   display_menu_item(menuItems[curMenuIdx])
+   apply_menu_item(menuItems[curMenuIdx])
    keep_looping = True
    while keep_looping:
       buttons = read_buttons()
@@ -221,37 +228,52 @@ def display_menu(menuItems):
             curMenuIdx -= 1
          else:
             curMenuIdx = len(menuItems) - 1
-         display_menu_item(menuItems[curMenuIdx])
+         apply_menu_item(menuItems[curMenuIdx])
       
       if (buttons == DOWN):
          if (curMenuIdx >= len(menuItems)-1):
             curMenuIdx = 0
          else:
             curMenuIdx += 1
-         display_menu_item(menuItems[curMenuIdx])
+         apply_menu_item(menuItems[curMenuIdx])
 
       if (buttons == LEFT):
          if (getattr(CONFIG, curIdxAttrName) > 0):
             setattr(CONFIG, curIdxAttrName, getattr(CONFIG, curIdxAttrName) - 1)
          else:
             setattr(CONFIG, curIdxAttrName, len(menuItems[curMenuIdx]['values'])-1)
-         display_menu_item(menuItems[curMenuIdx])
+         apply_menu_item(menuItems[curMenuIdx])
       
       if (buttons == RIGHT):
          if (getattr(CONFIG, curIdxAttrName) >= len(menuItems[curMenuIdx]['values'])-1):
             setattr(CONFIG, curIdxAttrName, 0)
          else:
             setattr(CONFIG, curIdxAttrName, getattr(CONFIG, curIdxAttrName) + 1)
-         display_menu_item(menuItems[curMenuIdx])
+         apply_menu_item(menuItems[curMenuIdx])
 
       if (buttons == SELECT):
          keep_looping = False
       #end of main menu loop
    display_main_screen();
 
-def display_menu_item(menuItem):
+def apply_menu_item(menuItem):
    LCD_QUEUE.put(menuItem['text'] + 
       "\nCurrent: " + str(menuItem['values'][getattr(CONFIG,menuItem['idxAttr'])]))
+   #if any custom code is specified run it here
+   if (menuItem['custConfigCode'] != None):
+      menuItem['custConfigCode']()
+
+def applyOpModeConfig():
+   if (CONFIG.modeIdx == 0): #TL
+      print('Timelapse Only selected')
+      # turn off streaming
+   elif (CONFIG.modeIdx == 1): #ST
+      print('Stream Only selected')
+      # turn on streaming
+   else: #TLS
+      print('Timelapse and Stream selected')
+      # turn on streaming
+
 
 def display_main_screen():
    global SHOT_COUNT
