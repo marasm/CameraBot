@@ -88,6 +88,7 @@ def generateCameraCmdFromConfig(outputFolder):
    command = ''
    if (CONFIG.get_cur_camera() == 'INT'):#internal camera
       command += 'raspistill -o ' + outputFolder + '/IMG_' + str(SHOT_COUNT) + '.jpg'
+      command += ' -n ' #no preview
       command += ' -q ' + str(CONFIG.get_cur_quality())
       command += ' -w ' + str(CONFIG.get_cur_img_width())
       command += ' -h ' + str(CONFIG.get_cur_img_height())
@@ -119,7 +120,7 @@ def main():
    lcd_worker.setDaemon(True)
    lcd_worker.start()
    # Display startup banner
-   LCD_QUEUE.put('CameraBot\nver. 0.3', True)
+   LCD_QUEUE.put('CameraBot\nver. 0.31', True)
    sleep(1)
 
    #setup the folder to store the images date based???
