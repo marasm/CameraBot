@@ -32,7 +32,7 @@ SHOT_COUNT = 0
 
 ON_MAIN_SCREEN = True
 
-CAMERA_STOP = False
+CAMERA_STOP = True
 
 # Buttons
 NONE           = 0x00
@@ -121,7 +121,7 @@ def main():
    lcd_worker.setDaemon(True)
    lcd_worker.start()
    # Display startup banner
-   LCD_QUEUE.put('CameraBot\nver. 0.32', True)
+   LCD_QUEUE.put('CameraBot\nver. 0.33', True)
    sleep(1)
 
    #setup the folder to store the images date based???
