@@ -258,7 +258,7 @@ def display_main_screen():
    diskUsage = run_cmd("df -h / |grep -m1 -o ' [0-9]*% '|head -1")
    LCD_QUEUE.put("du:" + diskUsage[:4] + "  " + 
       CONFIG.get_cur_mode() + "-" + CONFIG.get_cur_camera() +
-      "\n#" + str(SHOT_COUNT).zfill(4) + "     " + 
+      "\n#" + str(SHOT_COUNT).zfill(5) + "    " + 
       str(CONFIG.get_cur_delay()) + "s", True)
 
 # ----------------------------
