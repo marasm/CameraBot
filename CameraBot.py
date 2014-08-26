@@ -88,7 +88,8 @@ def generateCameraCmdFromConfig(outputFolder):
    command = ''
    if (CONFIG.get_cur_camera() == 'INT'):#internal camera
       command += 'raspistill -o ' + outputFolder + '/IMG_' + str(SHOT_COUNT) + '.jpg'
-      command += ' -n ' #no preview
+      command += ' -n' #no preview
+      command += ' -t 100' #no wait 100ms after taking the shot
       command += ' -q ' + str(CONFIG.get_cur_quality())
       command += ' -w ' + str(CONFIG.get_cur_img_width())
       command += ' -h ' + str(CONFIG.get_cur_img_height())
