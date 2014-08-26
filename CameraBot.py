@@ -95,6 +95,8 @@ def generateCameraCmdFromConfig(outputFolder):
       command += ' -h ' + str(CONFIG.get_cur_img_height())
    else:
       command += 'gphoto2'
+
+   command += ' && cp -f ' + + outputFolder + '/IMG_' + str(SHOT_COUNT) + '.jpg images/IMG_NOW.jpg'
    return command
 
 
