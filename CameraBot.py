@@ -20,8 +20,8 @@ except ImportError:
 # initialize the LCD plate
 #   use busnum = 0 for raspi version 1 (256MB) 
 #   and busnum = 1 for raspi version 2 (512MB)
-#LCD = Adafruit_CharLCDPlate(busnum = 0)
-LCD = MOCK_CharLCDPlate(busnum = 0)
+LCD = Adafruit_CharLCDPlate(busnum = 0)
+#LCD = MOCK_CharLCDPlate(busnum = 0)
 
 # Define a queue to communicate with worker thread
 LCD_QUEUE = Queue()
